@@ -29,7 +29,7 @@ Surveillance, Epidemiology, and End Results (SEER) Program (www.seer.cancer.gov)
 ```{r, warning=FALSE, message=FALSE}
 library(tidyverse)
 #load raw dataset
-seer <- read.csv("C:/Users/kmroh/Documents/BMI Cert/BMIN503/dataset1.csv", header = T)
+seer <- read.csv("C:/Users/kmroh/Documents/BMI Cert/Fall 2020/BMIN503/dataset1.csv", header = T)
 #view column names and rename variables of interest
 colnames(seer)
 seer <- seer %>%
