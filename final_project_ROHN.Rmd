@@ -204,6 +204,35 @@ Overall, both female sex and being partnered are associated with prolonged survi
 ```{r, warning=FALSE, message=FALSE}
 library(rstatix)
 library(ggpubr)
+library(survival)
+library(survminer)
+library(ranger)
+
+plot.test(numvar, vars, gavg) <- function(){
+if(numvar == 1){
+  #plot survival months by recoded marital status
+ggplot(seer, aes(x=as.factor(vars), y=surv.months)) +
+  geom_boxplot(aes(middle = mean(surv.months))) +
+  theme(plot.title = element_text(hjust = 0.5),
+        panel.border = element_blank(), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(), 
+        axis.line = element_line(colour = "black")) +
+  labs(title = "Survival Months by Marital Status at Diagnosis \nAll Sexes", 
+       x = "Relationship status", 
+       y = "Survival Months") +
+  stat_summary(fun.y=mean, colour="yellow") +
+  geom_text(aes(label = round(avg.pstatus,2), y = avg.pstatus))
+#t-test for significance
+t.test(seer$surv.months~seer$part)
+#kaplan-meier
+km_fit <- survfit(Surv(surv.months) ~ part, data=seer)
+ggsurvplot(km_fit, data = seer, pval = T, conf.int = T)
+#cox proportional hazards regression
+cox <- coxph(Surv(surv.months) ~ part, data = seer)
+summary(cox)
+}
+}
 
 #plot survival months by recoded marital status
 ggplot(seer, aes(x=as.factor(part), y=surv.months)) +
@@ -220,6 +249,12 @@ ggplot(seer, aes(x=as.factor(part), y=surv.months)) +
   geom_text(aes(label = round(avg.pstatus,2), y = avg.pstatus))
 #t-test for significance
 t.test(seer$surv.months~seer$part)
+#kaplan-meier
+km_fit <- survfit(Surv(surv.months) ~ part, data=seer)
+ggsurvplot(km_fit, data = seer, pval = T, conf.int = T)
+#cox proportional hazards regression
+cox <- coxph(Surv(surv.months) ~ part, data = seer)
+summary(cox)
 
 #plot survival months by sex
 ggplot(seer, aes(x=as.factor(sex), y=surv.months)) +
@@ -236,6 +271,12 @@ ggplot(seer, aes(x=as.factor(sex), y=surv.months)) +
   geom_text(aes(label = round(avg.sex,2), y = avg.sex))
 #t-test for significance
 t.test(seer$surv.months~seer$sex)
+#kaplan-meier
+km_fit <- survfit(Surv(surv.months) ~ sex, data=seer)
+ggsurvplot(km_fit, data = seer, pval = T)
+#cox proportional hazards regression
+cox <- coxph(Surv(surv.months) ~ sex, data = seer)
+summary(cox)
 
 #plot survival months by part and sex
 ggplot(seer, aes(x=as.factor(part), y=surv.months)) +
@@ -255,6 +296,12 @@ ggplot(seer, aes(x=as.factor(part), y=surv.months)) +
 #pairwise t-test and anova based on partner status and sex
 summary(aov(surv.months ~ psgroup, data = seer))
 pairwise.t.test(seer$surv.months, seer$psgroup, p.adjust.method = "bonferroni")
+#kaplan-meier
+km_fit <- survfit(Surv(surv.months) ~ part + sex, data=seer)
+ggsurvplot(km_fit, data = seer, pval = T, conf.int = T)
+#cox proportional hazards regression
+cox <- coxph(Surv(surv.months) ~ part + sex, data = seer)
+summary(cox)
 
 #plot survival months by part, sex, and race
 ggplot(seer, aes(x=as.factor(part), y=surv.months)) +
@@ -274,6 +321,12 @@ ggplot(seer, aes(x=as.factor(part), y=surv.months)) +
 #pairwise t-test and anova based on partner status, sex and race
 summary(aov(surv.months ~ psrgroup, data = seer))
 pairwise.t.test(seer$surv.months, seer$psrgroup, p.adjust.method = "bonferroni")
+#kaplan-meier
+km_fit <- survfit(Surv(surv.months) ~ part + sex + race, data=seer)
+ggsurvplot(km_fit, data = seer, pval = T, conf.int = T)
+#cox proportional hazards regression
+cox <- coxph(Surv(surv.months) ~ part + sex + race, data = seer)
+summary(cox)
 
 #pairwise t-test and anova based on partner status, sex and cancer site
 summary(aov(surv.months ~ psbgroup, data = seer))
