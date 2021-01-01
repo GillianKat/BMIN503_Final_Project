@@ -323,11 +323,11 @@ summary(aov(surv.months ~ psrgroup, data = seer))
 pairwise.t.test(seer$surv.months, seer$psrgroup, p.adjust.method = "bonferroni")
 #kaplan-meier
 km_fit <- survfit(Surv(surv.months) ~ part + sex + race, data=seer)
-ggsurvplot(km_fit, data = seer, pval = T, conf.int = T)
+gg <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T)
+gg$plot + facet_wrap(~race + sex)
 #cox proportional hazards regression
 cox <- coxph(Surv(surv.months) ~ part + sex + race, data = seer)
 summary(cox)
-
 #pairwise t-test and anova based on partner status, sex and cancer site
 summary(aov(surv.months ~ psbgroup, data = seer))
 
@@ -350,6 +350,13 @@ ggplot(subset(seer, group %in% c("Lip, Oral Cavity and Pharynx")), aes(x=as.fact
 summary(aov(surv.months ~ psbgroup, data = subset(seer, group %in% c("Lip, Oral Cavity and Pharynx"))))
 seer1 <- subset(seer, group %in% c("Lip, Oral Cavity and Pharynx"))
 pairwise.t.test(seer1$surv.months, seer1$psbgroup, p.adjust.method = "bonferroni")
+#kaplan-meier
+km_fit <- survfit(Surv(surv.months) ~ part + sex, data=seer1)
+gg <- ggsurvplot(km_fit, data = seer1, pval = T, conf.int = T)
+gg$plot + facet_wrap(~ sex)
+#cox proportional hazards regression
+cox <- coxph(Surv(surv.months) ~ part + sex + race, data = seer1)
+summary(cox)
 
 ggplot(subset(seer, group %in% c("Digestive Organs")), aes(x=as.factor(part), y=surv.months)) +
   geom_boxplot(aes(color = sex, middle = mean(surv.months))) +
