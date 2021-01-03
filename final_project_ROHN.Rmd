@@ -200,22 +200,23 @@ seer$psbgroup[seer$sex == "Male" & seer$part == "Partnered" & seer$group == "Uri
 
 ### Results
 
-Overall, both female sex and being partnered are associated with prolonged survival in cancer patients with statistically significant p-values of less than 0.05 in all ANOVAs and t-tests performed. The one caveat to the statistical significance of these results is that survival is generally only prolongued by a matter of a few months; while this may be emotionally meaningful for the loved ones of cancer patients, I also think that this could also mean prolongued suffering for terminally ill patients. Further, although the cleaned dataset has ~1.7 million observations, it is possible that that means the dataset is overpowered to detect significance. There are a few exceptions to the above stated pattern when subsetting the dataset by cancer sites. Specifically, bone and articular cartiledge patients survive longer when partnered, however this tendency is not statistically significant and there is virtually no difference between sexes; skin cancer patients are statistically differentiated between groups, except for single males and partnered females; mesothial single males are not statistically differentiated from females, whether single or partnered; breast patients are significantly differentiated by sex but not by partnership status; partnered genital patients survive longer than single patients, however in this group men survive longer than women and these findings are statistically significant -- this pattern is also true for urinary tract patients; single male and female thyroid patients and ill-defined sites patients are not statistically differentiated.
+Overall, both female sex and being partnered are associated with prolonged survival in cancer patients with statistically significant p-values of less than 0.05 in all ANOVAs and t-tests performed. The one caveat to the statistical significance of these results is that survival is generally only prolongued by a matter of a few months; while this may be emotionally meaningful for the loved ones of cancer patients, I also think that this could also mean prolongued suffering for terminally ill patients. Further, although the cleaned dataset has ~1.7 million observations, it is possible that that means the dataset is overpowered to detect significance. There are a few exceptions to the above stated pattern when subsetting the dataset by cancer sites. Specifically, bone and articular cartiledge patients survive longer when partnered, however this tendency is not statistically significant and there is virtually no difference between sexes; skin cancer patients are statistically differentiated between groups, except for single males and partnered females; mesothial single males are not statistically differentiated from females, whether single or partnered; breast patients are significantly differentiated by sex but not by Relationship status; partnered genital patients survive longer than single patients, however in this group men survive longer than women and these findings are statistically significant -- this pattern is also true for urinary tract patients; single male and female thyroid patients and ill-defined sites patients are not statistically differentiated.
 ```{r, warning=FALSE, message=FALSE}
 library(rstatix)
 library(ggpubr)
 library(survival)
 library(survminer)
+library(ggrepel)
 
 plots <- function(xvar, xname, gtitle, gavg){
   
   p <- ggplot(seer, aes(x=as.factor(xvar), y=surv.months)) +
-  geom_boxplot(aes(middle = mean(surv.months))) +
+  geom_violin(aes(middle = mean(surv.months))) +
   theme(plot.title = element_text(hjust = 0.5),
         panel.border = element_blank(), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(), 
-        axis.line = element_line(colour = "black")) +
+        axis.line = element_line(colour = "black")) + 
   labs(title = gtitle, 
        x = xname, 
        y = "Survival Months") +
@@ -223,21 +224,22 @@ plots <- function(xvar, xname, gtitle, gavg){
   geom_text(aes(label = round(gavg,2), y = gavg))
   print(p)
   #t-test for significance
-  t.test(data = seer, surv.months~xvar)
+  print(t.test(data = seer, surv.months~xvar))
   
   #kaplan-meier
   km_fit <- surv_fit(Surv(surv.months) ~ xvar, data=seer)
-  km <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T)
+  km <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T, title = paste("Kaplan-Meier Survival Curve \nby ", xname), legend = "none",surv.median.line = "hv")
+  geom_label_repel()
   print(km)
   #cox proportional hazards regression
   cox <- coxph(Surv(surv.months) ~ as.vector(unlist(xvar)), data = seer)
-  summary(cox)
+  print(summary(cox))
 }
 
-#plot survival months by recoded Partnership status
+#plot survival months by recoded Relationship status
 plots(seer$part, 
       "Relationship Status", 
-      "Survival Months by Partnership Status at Diagnosis \nAll Sexes", 
+      "Survival Months by Relationship Status at Diagnosis \nAll Sexes", 
       seer$avg.pstatus)
 
 #plot survival months by sex
@@ -248,39 +250,40 @@ plots(seer$sex,
 
 #plot survival months by relationship status and sex
   ggplot(seer, aes(x=as.factor(part), y=surv.months)) +
-  geom_boxplot(aes(color = sex, middle = mean(surv.months))) +
+  geom_violin(aes(color = sex, middle = mean(surv.months))) +
   theme(plot.title = element_text(hjust = 0.5),
         panel.border = element_blank(), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"),
         legend.position = "none") +
-  labs(title = "Survival Months by Partnership Status at Diagnosis \nand Sex", 
+  labs(title = "Survival Months by Relationship Status at Diagnosis \nand Sex", 
        x = "Relationship status", 
        y = "Survival Months") +
   stat_summary(fun.y=mean, colour="yellow") +
   geom_text(aes(label = round(avg.part.sex,2), y = avg.part.sex)) +
   facet_wrap(~sex)
   #paired t-test for significance
-  pairwise.t.test(seer$surv.months, seer$psgroup, p.adjust.method = "bonferroni")
+  print(pairwise.t.test(seer$surv.months, seer$psgroup, p.adjust.method = "bonferroni"))
   #kaplan-meier
   km_fit <- surv_fit(Surv(surv.months) ~ part + sex, data=seer)
-  gg <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T)
-  gg$plot + facet_wrap(~sex)
+  gg <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T, title = paste("Kaplan-Meier survival Curves \nby Relationship Status at Diagnosis and Sex"), legend.labs = c("Single","Single","Partnered","Partnered"),surv.median.line = "hv") 
+  print(gg$plot + facet_wrap(~sex))
+  
   #cox proportional hazards regression
   cox <- coxph(Surv(surv.months) ~ part + sex, data = seer)
-  summary(cox)
+  print(summary(cox))
 
 #plot survival months by part, sex, and race
 ggplot(seer, aes(x=as.factor(part), y=surv.months)) +
-  geom_boxplot(aes(color = sex, middle = mean(surv.months))) +
+  geom_violin(aes(color = sex, middle = mean(surv.months))) +
   theme(plot.title = element_text(hjust = 0.5),
         panel.border = element_blank(), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"),
         legend.position = "none") +
-  labs(title = "Survival Months by Partnership Status at Diagnosis, \nSex, and Race", 
+  labs(title = "Survival Months by Relationship Status at Diagnosis, \nSex, and Race", 
        x = "Relationship status", 
        y = "Survival Months") +
   stat_summary(fun.y=mean, colour="yellow") +
@@ -291,7 +294,7 @@ summary(aov(surv.months ~ psrgroup, data = seer))
 pairwise.t.test(seer$surv.months, seer$psrgroup, p.adjust.method = "bonferroni")
 #kaplan-meier
 km_fit <- survfit(Surv(surv.months) ~ part + sex + race, data=seer)
-gg <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T)
+gg <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T, title = paste("Kaplan-Meier survival Curves \nby Sex, Race, and Relationship Status at Diagnosis"), legend.labs = c("Single","Single","Single","Single","Single","Single","Partnered","Partnered","Partnered","Partnered","Partnered","Partnered"),surv.median.line = "hv")
 gg$plot + facet_wrap(~race + sex)
 #cox proportional hazards regression
 cox <- coxph(Surv(surv.months) ~ part + sex + race, data = seer)
@@ -301,14 +304,14 @@ summary(cox)
 
 plots.group <- function(gname){
 p <- ggplot(subset(seer, group %in% c(gname)), aes(x=as.factor(part), y=surv.months)) +
-  geom_boxplot(aes(color = sex, middle = mean(surv.months))) +
+  geom_violin(aes(color = sex, middle = mean(surv.months))) +
   theme(plot.title = element_text(hjust = 0.5),
         panel.border = element_blank(), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"),
         legend.position = "none") +
-  labs(title = paste("Survival Months by Partnership Status at Diagnosis \nand Sex \nGroup: ", gname), 
+  labs(title = paste("Survival Months by Relationship Status at Diagnosis \nand Sex \nGroup: ", gname), 
        x = "Relationship status", 
        y = "Survival Months")  +
   stat_summary(fun.y=mean, colour="yellow") +
@@ -317,15 +320,15 @@ p <- ggplot(subset(seer, group %in% c(gname)), aes(x=as.factor(part), y=surv.mon
 print(p)
 #pairwise t-test based on partner status, sex and cancer site
 seer1 <- subset(seer, group %in% c(gname))
-pairwise.t.test(seer1$surv.months, seer1$psbgroup, p.adjust.method = "bonferroni")
+print(pairwise.t.test(seer1$surv.months, seer1$psbgroup, p.adjust.method = "bonferroni"))
 #kaplan-meier
   km_fit <- surv_fit(Surv(surv.months) ~ part + sex, data=seer1)
-  km <- ggsurvplot(km_fit, data = seer1, pval = T, conf.int = T)
+  km <- ggsurvplot(km_fit, data = seer1, pval = T, conf.int = T, title = paste("Kaplan-Meier survival Curves \nGroup: ",gname), legend.labs = c("Single","Single","Partnered","Partnered"),surv.median.line = "hv")
   km <- km$plot + facet_wrap(~ sex)
   print(km)
   #cox proportional hazards regression
   cox <- coxph(Surv(surv.months) ~ part + sex, data = seer1)
-  summary(cox)
+  print(summary(cox))
 }
 
 plots.group("Lip, Oral Cavity and Pharynx")

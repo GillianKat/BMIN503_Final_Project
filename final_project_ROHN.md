@@ -251,23 +251,24 @@ seer$psbgroup[seer$sex == "Male" & seer$part == "Partnered" & seer$group == "Uri
 
 ### Results
 
-Overall, both female sex and being partnered are associated with prolonged survival in cancer patients with statistically significant p-values of less than 0.05 in all ANOVAs and t-tests performed. The one caveat to the statistical significance of these results is that survival is generally only prolongued by a matter of a few months; while this may be emotionally meaningful for the loved ones of cancer patients, I also think that this could also mean prolongued suffering for terminally ill patients. Further, although the cleaned dataset has ~1.7 million observations, it is possible that that means the dataset is overpowered to detect significance. There are a few exceptions to the above stated pattern when subsetting the dataset by cancer sites. Specifically, bone and articular cartiledge patients survive longer when partnered, however this tendency is not statistically significant and there is virtually no difference between sexes; skin cancer patients are statistically differentiated between groups, except for single males and partnered females; mesothial single males are not statistically differentiated from females, whether single or partnered; breast patients are significantly differentiated by sex but not by partnership status; partnered genital patients survive longer than single patients, however in this group men survive longer than women and these findings are statistically significant -- this pattern is also true for urinary tract patients; single male and female thyroid patients and ill-defined sites patients are not statistically differentiated.
+Overall, both female sex and being partnered are associated with prolonged survival in cancer patients with statistically significant p-values of less than 0.05 in all ANOVAs and t-tests performed. The one caveat to the statistical significance of these results is that survival is generally only prolongued by a matter of a few months; while this may be emotionally meaningful for the loved ones of cancer patients, I also think that this could also mean prolongued suffering for terminally ill patients. Further, although the cleaned dataset has ~1.7 million observations, it is possible that that means the dataset is overpowered to detect significance. There are a few exceptions to the above stated pattern when subsetting the dataset by cancer sites. Specifically, bone and articular cartiledge patients survive longer when partnered, however this tendency is not statistically significant and there is virtually no difference between sexes; skin cancer patients are statistically differentiated between groups, except for single males and partnered females; mesothial single males are not statistically differentiated from females, whether single or partnered; breast patients are significantly differentiated by sex but not by Relationship status; partnered genital patients survive longer than single patients, however in this group men survive longer than women and these findings are statistically significant -- this pattern is also true for urinary tract patients; single male and female thyroid patients and ill-defined sites patients are not statistically differentiated.
 
 ```r
 library(rstatix)
 library(ggpubr)
 library(survival)
 library(survminer)
+library(ggrepel)
 
 plots <- function(xvar, xname, gtitle, gavg){
   
   p <- ggplot(seer, aes(x=as.factor(xvar), y=surv.months)) +
-  geom_boxplot(aes(middle = mean(surv.months))) +
+  geom_violin(aes(middle = mean(surv.months))) +
   theme(plot.title = element_text(hjust = 0.5),
         panel.border = element_blank(), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(), 
-        axis.line = element_line(colour = "black")) +
+        axis.line = element_line(colour = "black")) + 
   labs(title = gtitle, 
        x = xname, 
        y = "Survival Months") +
@@ -275,25 +276,42 @@ plots <- function(xvar, xname, gtitle, gavg){
   geom_text(aes(label = round(gavg,2), y = gavg))
   print(p)
   #t-test for significance
-  t.test(data = seer, surv.months~xvar)
+  print(t.test(data = seer, surv.months~xvar))
   
   #kaplan-meier
   km_fit <- surv_fit(Surv(surv.months) ~ xvar, data=seer)
-  km <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T)
+  km <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T, title = paste("Kaplan-Meier Survival Curve \nby ", xname), legend = "none",surv.median.line = "hv")
+  geom_label_repel()
   print(km)
   #cox proportional hazards regression
   cox <- coxph(Surv(surv.months) ~ as.vector(unlist(xvar)), data = seer)
-  summary(cox)
+  print(summary(cox))
 }
 
-#plot survival months by recoded Partnership status
+#plot survival months by recoded Relationship status
 plots(seer$part, 
       "Relationship Status", 
-      "Survival Months by Partnership Status at Diagnosis \nAll Sexes", 
+      "Survival Months by Relationship Status at Diagnosis \nAll Sexes", 
       seer$avg.pstatus)
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-1.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-2.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
+
+```
+## 
+## 	Welch Two Sample t-test
+## 
+## data:  surv.months by xvar
+## t = -98.691, df = 660132, p-value < 2.2e-16
+## alternative hypothesis: true difference in means is not equal to 0
+## 95 percent confidence interval:
+##  -5.622102 -5.403146
+## sample estimates:
+##    mean in group Single mean in group Partnered 
+##                20.80908                26.32170
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-2.png)<!-- -->
 
 ```
 ## Call:
@@ -324,7 +342,23 @@ plots(seer$sex,
       seer$avg.sex)
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-3.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-4.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-3.png)<!-- -->
+
+```
+## 
+## 	Welch Two Sample t-test
+## 
+## data:  surv.months by xvar
+## t = 99.076, df = 1389519, p-value < 2.2e-16
+## alternative hypothesis: true difference in means is not equal to 0
+## 95 percent confidence interval:
+##  5.020211 5.222844
+## sample estimates:
+## mean in group Female   mean in group Male 
+##             28.29847             23.17694
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-4.png)<!-- -->
 
 ```
 ## Call:
@@ -350,14 +384,14 @@ plots(seer$sex,
 ```r
 #plot survival months by relationship status and sex
   ggplot(seer, aes(x=as.factor(part), y=surv.months)) +
-  geom_boxplot(aes(color = sex, middle = mean(surv.months))) +
+  geom_violin(aes(color = sex, middle = mean(surv.months))) +
   theme(plot.title = element_text(hjust = 0.5),
         panel.border = element_blank(), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"),
         legend.position = "none") +
-  labs(title = "Survival Months by Partnership Status at Diagnosis \nand Sex", 
+  labs(title = "Survival Months by Relationship Status at Diagnosis \nand Sex", 
        x = "Relationship status", 
        y = "Survival Months") +
   stat_summary(fun.y=mean, colour="yellow") +
@@ -369,7 +403,7 @@ plots(seer$sex,
 
 ```r
   #paired t-test for significance
-  pairwise.t.test(seer$surv.months, seer$psgroup, p.adjust.method = "bonferroni")
+  print(pairwise.t.test(seer$surv.months, seer$psgroup, p.adjust.method = "bonferroni"))
 ```
 
 ```
@@ -389,8 +423,8 @@ plots(seer$sex,
 ```r
   #kaplan-meier
   km_fit <- surv_fit(Surv(surv.months) ~ part + sex, data=seer)
-  gg <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T)
-  gg$plot + facet_wrap(~sex)
+  gg <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T, title = paste("Kaplan-Meier survival Curves \nby Relationship Status at Diagnosis and Sex"), legend.labs = c("Single","Single","Partnered","Partnered"),surv.median.line = "hv") 
+  print(gg$plot + facet_wrap(~sex))
 ```
 
 ![](final_project_ROHN_files/figure-html/unnamed-chunk-2-6.png)<!-- -->
@@ -398,7 +432,7 @@ plots(seer$sex,
 ```r
   #cox proportional hazards regression
   cox <- coxph(Surv(surv.months) ~ part + sex, data = seer)
-  summary(cox)
+  print(summary(cox))
 ```
 
 ```
@@ -426,14 +460,14 @@ plots(seer$sex,
 ```r
 #plot survival months by part, sex, and race
 ggplot(seer, aes(x=as.factor(part), y=surv.months)) +
-  geom_boxplot(aes(color = sex, middle = mean(surv.months))) +
+  geom_violin(aes(color = sex, middle = mean(surv.months))) +
   theme(plot.title = element_text(hjust = 0.5),
         panel.border = element_blank(), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"),
         legend.position = "none") +
-  labs(title = "Survival Months by Partnership Status at Diagnosis, \nSex, and Race", 
+  labs(title = "Survival Months by Relationship Status at Diagnosis, \nSex, and Race", 
        x = "Relationship status", 
        y = "Survival Months") +
   stat_summary(fun.y=mean, colour="yellow") +
@@ -484,7 +518,7 @@ pairwise.t.test(seer$surv.months, seer$psrgroup, p.adjust.method = "bonferroni")
 ```r
 #kaplan-meier
 km_fit <- survfit(Surv(surv.months) ~ part + sex + race, data=seer)
-gg <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T)
+gg <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T, title = paste("Kaplan-Meier survival Curves \nby Sex, Race, and Relationship Status at Diagnosis"), legend.labs = c("Single","Single","Single","Single","Single","Single","Partnered","Partnered","Partnered","Partnered","Partnered","Partnered"),surv.median.line = "hv")
 gg$plot + facet_wrap(~race + sex)
 ```
 
@@ -527,14 +561,14 @@ summary(cox)
 
 plots.group <- function(gname){
 p <- ggplot(subset(seer, group %in% c(gname)), aes(x=as.factor(part), y=surv.months)) +
-  geom_boxplot(aes(color = sex, middle = mean(surv.months))) +
+  geom_violin(aes(color = sex, middle = mean(surv.months))) +
   theme(plot.title = element_text(hjust = 0.5),
         panel.border = element_blank(), 
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(), 
         axis.line = element_line(colour = "black"),
         legend.position = "none") +
-  labs(title = paste("Survival Months by Partnership Status at Diagnosis \nand Sex \nGroup: ", gname), 
+  labs(title = paste("Survival Months by Relationship Status at Diagnosis \nand Sex \nGroup: ", gname), 
        x = "Relationship status", 
        y = "Survival Months")  +
   stat_summary(fun.y=mean, colour="yellow") +
@@ -543,21 +577,37 @@ p <- ggplot(subset(seer, group %in% c(gname)), aes(x=as.factor(part), y=surv.mon
 print(p)
 #pairwise t-test based on partner status, sex and cancer site
 seer1 <- subset(seer, group %in% c(gname))
-pairwise.t.test(seer1$surv.months, seer1$psbgroup, p.adjust.method = "bonferroni")
+print(pairwise.t.test(seer1$surv.months, seer1$psbgroup, p.adjust.method = "bonferroni"))
 #kaplan-meier
   km_fit <- surv_fit(Surv(surv.months) ~ part + sex, data=seer1)
-  km <- ggsurvplot(km_fit, data = seer1, pval = T, conf.int = T)
+  km <- ggsurvplot(km_fit, data = seer1, pval = T, conf.int = T, title = paste("Kaplan-Meier survival Curves \nGroup: ",gname), legend.labs = c("Single","Single","Partnered","Partnered"),surv.median.line = "hv")
   km <- km$plot + facet_wrap(~ sex)
   print(km)
   #cox proportional hazards regression
   cox <- coxph(Surv(surv.months) ~ part + sex, data = seer1)
-  summary(cox)
+  print(summary(cox))
 }
 
 plots.group("Lip, Oral Cavity and Pharynx")
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-9.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-10.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-9.png)<!-- -->
+
+```
+## 
+## 	Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  seer1$surv.months and seer1$psbgroup 
+## 
+##               Lip.Part.Fem Lip.Part.Male Lip.Sing.Fem
+## Lip.Part.Male < 2e-16      -             -           
+## Lip.Sing.Fem  < 2e-16      < 2e-16       -           
+## Lip.Sing.Male < 2e-16      < 2e-16       3.4e-05     
+## 
+## P value adjustment method: bonferroni
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-10.png)<!-- -->
 
 ```
 ## Call:
@@ -585,7 +635,23 @@ plots.group("Lip, Oral Cavity and Pharynx")
 plots.group("Digestive Organs")
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-11.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-12.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-11.png)<!-- -->
+
+```
+## 
+## 	Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  seer1$surv.months and seer1$psbgroup 
+## 
+##               Dig.Part.Fem Dig.Part.Male Dig.Sing.Fem
+## Dig.Part.Male <2e-16       -             -           
+## Dig.Sing.Fem  <2e-16       <2e-16        -           
+## Dig.Sing.Male <2e-16       <2e-16        <2e-16      
+## 
+## P value adjustment method: bonferroni
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-12.png)<!-- -->
 
 ```
 ## Call:
@@ -613,7 +679,23 @@ plots.group("Digestive Organs")
 plots.group("Respiratory and Intrathoracic Organs")
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-13.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-14.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-13.png)<!-- -->
+
+```
+## 
+## 	Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  seer1$surv.months and seer1$psbgroup 
+## 
+##                Resp.Part.Fem Resp.Part.Male Resp.Sing.Fem
+## Resp.Part.Male < 2e-16       -              -            
+## Resp.Sing.Fem  < 2e-16       5.4e-07        -            
+## Resp.Sing.Male < 2e-16       < 2e-16        < 2e-16      
+## 
+## P value adjustment method: bonferroni
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-14.png)<!-- -->
 
 ```
 ## Call:
@@ -641,7 +723,23 @@ plots.group("Respiratory and Intrathoracic Organs")
 plots.group("Bone and Articular Cartilage")
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-15.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-16.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-15.png)<!-- -->
+
+```
+## 
+## 	Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  seer1$surv.months and seer1$psbgroup 
+## 
+##                Bone.Part.Fem Bone.Part.Male Bone.Sing.Fem
+## Bone.Part.Male 1.00          -              -            
+## Bone.Sing.Fem  0.50          0.28           -            
+## Bone.Sing.Male 0.33          0.13           1.00         
+## 
+## P value adjustment method: bonferroni
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-16.png)<!-- -->
 
 ```
 ## Call:
@@ -669,7 +767,23 @@ plots.group("Bone and Articular Cartilage")
 plots.group("Skin")
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-17.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-18.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-17.png)<!-- -->
+
+```
+## 
+## 	Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  seer1$surv.months and seer1$psbgroup 
+## 
+##                Skin.Part.Fem Skin.Part.Male Skin.Sing.Fem
+## Skin.Part.Male <2e-16        -              -            
+## Skin.Sing.Fem  <2e-16        1              -            
+## Skin.Sing.Male <2e-16        <2e-16         <2e-16       
+## 
+## P value adjustment method: bonferroni
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-18.png)<!-- -->
 
 ```
 ## Call:
@@ -697,7 +811,23 @@ plots.group("Skin")
 plots.group("Mesothelial and Soft Tissue")
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-19.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-20.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-19.png)<!-- -->
+
+```
+## 
+## 	Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  seer1$surv.months and seer1$psbgroup 
+## 
+##                Meso.Part.Fem Meso.Part.Male Meso.Sing.Fem
+## Meso.Part.Male <2e-16        -              -            
+## Meso.Sing.Fem  1e-13         1.00           -            
+## Meso.Sing.Male <2e-16        0.01           0.56         
+## 
+## P value adjustment method: bonferroni
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-20.png)<!-- -->
 
 ```
 ## Call:
@@ -725,7 +855,23 @@ plots.group("Mesothelial and Soft Tissue")
 plots.group("Breast")
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-21.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-22.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-21.png)<!-- -->
+
+```
+## 
+## 	Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  seer1$surv.months and seer1$psbgroup 
+## 
+##                  Breast.Part.Fem Breast.Part.Male Breast.Sing.Fem
+## Breast.Part.Male 1.00            -                -              
+## Breast.Sing.Fem  < 2e-16         < 2e-16          -              
+## Breast.Sing.Male 4.0e-11         1.7e-08          0.62           
+## 
+## P value adjustment method: bonferroni
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-22.png)<!-- -->
 
 ```
 ## Call:
@@ -753,7 +899,23 @@ plots.group("Breast")
 plots.group("Genital Organs")
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-23.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-24.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-23.png)<!-- -->
+
+```
+## 
+## 	Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  seer1$surv.months and seer1$psbgroup 
+## 
+##               Eye.Part.Male Gen.Part.Fem Gen.Sing.Fem
+## Gen.Part.Fem  <2e-16        -            -           
+## Gen.Sing.Fem  <2e-16        <2e-16       -           
+## Gen.Sing.Male <2e-16        <2e-16       <2e-16      
+## 
+## P value adjustment method: bonferroni
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-24.png)<!-- -->
 
 ```
 ## Call:
@@ -781,7 +943,23 @@ plots.group("Genital Organs")
 plots.group("Urinary Tract")
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-25.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-26.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-25.png)<!-- -->
+
+```
+## 
+## 	Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  seer1$surv.months and seer1$psbgroup 
+## 
+##               Uri.Part.Fem Uri.Part.Male Uri.Sing.Fem
+## Uri.Part.Male < 2e-16      -             -           
+## Uri.Sing.Fem  < 2e-16      < 2e-16       -           
+## Uri.Sing.Male < 2e-16      < 2e-16       3.6e-06     
+## 
+## P value adjustment method: bonferroni
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-26.png)<!-- -->
 
 ```
 ## Call:
@@ -809,7 +987,23 @@ plots.group("Urinary Tract")
 plots.group("Eye, Brain or Central Nervous System")
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-27.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-28.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-27.png)<!-- -->
+
+```
+## 
+## 	Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  seer1$surv.months and seer1$psbgroup 
+## 
+##               Eye.Part.Fem Eye.Part.Male Eye.Sing.Fem
+## Eye.Part.Male < 2e-16      -             -           
+## Eye.Sing.Fem  < 2e-16      < 2e-16       -           
+## Eye.Sing.Male 8.9e-08      < 2e-16       0.0016      
+## 
+## P value adjustment method: bonferroni
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-28.png)<!-- -->
 
 ```
 ## Call:
@@ -837,7 +1031,23 @@ plots.group("Eye, Brain or Central Nervous System")
 plots.group("Thyroid & Endocrine Glands")
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-29.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-30.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-29.png)<!-- -->
+
+```
+## 
+## 	Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  seer1$surv.months and seer1$psbgroup 
+## 
+##               Thy.Part.Fem Thy.Part.Male Thy.Sing.Fem
+## Thy.Part.Male 0.00022      -             -           
+## Thy.Sing.Fem  8.1e-15      3.8e-06       -           
+## Thy.Sing.Male < 2e-16      2.9e-11       0.70821     
+## 
+## P value adjustment method: bonferroni
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-30.png)<!-- -->
 
 ```
 ## Call:
@@ -865,7 +1075,23 @@ plots.group("Thyroid & Endocrine Glands")
 plots.group("Ill-Defined Sites")
 ```
 
-![](final_project_ROHN_files/figure-html/unnamed-chunk-2-31.png)<!-- -->![](final_project_ROHN_files/figure-html/unnamed-chunk-2-32.png)<!-- -->
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-31.png)<!-- -->
+
+```
+## 
+## 	Pairwise comparisons using t tests with pooled SD 
+## 
+## data:  seer1$surv.months and seer1$psbgroup 
+## 
+##               Ill.Part.Fem Ill.Part.Male Ill.Sing.Fem
+## Ill.Part.Male 3.2e-08      -             -           
+## Ill.Sing.Fem  < 2e-16      < 2e-16       -           
+## Ill.Sing.Male < 2e-16      < 2e-16       0.12        
+## 
+## P value adjustment method: bonferroni
+```
+
+![](final_project_ROHN_files/figure-html/unnamed-chunk-2-32.png)<!-- -->
 
 ```
 ## Call:
