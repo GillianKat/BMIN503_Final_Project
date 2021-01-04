@@ -1,6 +1,6 @@
 ---
 title: "BMIN503/EPID600 Final Project"
-author: "Killian Rohn"
+author: "My Identity is a 'Secret'"
 output: 
   html_document:
     keep_md: true
@@ -228,7 +228,7 @@ plots <- function(xvar, xname, gtitle, gavg){
   
   #kaplan-meier
   km_fit <- surv_fit(Surv(surv.months) ~ xvar, data=seer)
-  km <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T, title = paste("Kaplan-Meier Survival Curve \nby ", xname), legend = "none",surv.median.line = "hv")
+  km <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T, title = paste("Kaplan-Meier Survival Curve \nby ", xname),surv.median.line = "hv", palette = c("purple", "green"))
   geom_label_repel()
   print(km)
   #cox proportional hazards regression
@@ -267,7 +267,7 @@ plots(seer$sex,
   print(pairwise.t.test(seer$surv.months, seer$psgroup, p.adjust.method = "bonferroni"))
   #kaplan-meier
   km_fit <- surv_fit(Surv(surv.months) ~ part + sex, data=seer)
-  gg <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T, title = paste("Kaplan-Meier survival Curves \nby Relationship Status at Diagnosis and Sex"), legend.labs = c("Single","Single","Partnered","Partnered"),surv.median.line = "hv") 
+  gg <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T, title = paste("Kaplan-Meier Survival Curves \nby Relationship Status at Diagnosis and Sex"), legend.labs = c("Single","Single","Partnered","Partnered"),surv.median.line = "hv", palette = c("purple", "green")) 
   print(gg$plot + facet_wrap(~sex))
   
   #cox proportional hazards regression
@@ -294,7 +294,7 @@ summary(aov(surv.months ~ psrgroup, data = seer))
 pairwise.t.test(seer$surv.months, seer$psrgroup, p.adjust.method = "bonferroni")
 #kaplan-meier
 km_fit <- survfit(Surv(surv.months) ~ part + sex + race, data=seer)
-gg <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T, title = paste("Kaplan-Meier survival Curves \nby Sex, Race, and Relationship Status at Diagnosis"), legend.labs = c("Single","Single","Single","Single","Single","Single","Partnered","Partnered","Partnered","Partnered","Partnered","Partnered"),surv.median.line = "hv")
+gg <- ggsurvplot(km_fit, data = seer, pval = T, conf.int = T, title = paste("Kaplan-Meier Survival Curves \nby Sex, Race, and Relationship Status at Diagnosis"), legend.labs = c("Single","Single","Single","Single","Single","Single","Partnered","Partnered","Partnered","Partnered","Partnered","Partnered"),surv.median.line = "hv", palette = c("purple", "green"))
 gg$plot + facet_wrap(~race + sex)
 #cox proportional hazards regression
 cox <- coxph(Surv(surv.months) ~ part + sex + race, data = seer)
@@ -323,7 +323,7 @@ seer1 <- subset(seer, group %in% c(gname))
 print(pairwise.t.test(seer1$surv.months, seer1$psbgroup, p.adjust.method = "bonferroni"))
 #kaplan-meier
   km_fit <- surv_fit(Surv(surv.months) ~ part + sex, data=seer1)
-  km <- ggsurvplot(km_fit, data = seer1, pval = T, conf.int = T, title = paste("Kaplan-Meier survival Curves \nGroup: ",gname), legend.labs = c("Single","Single","Partnered","Partnered"),surv.median.line = "hv")
+  km <- ggsurvplot(km_fit, data = seer1, pval = T, conf.int = T, title = paste("Kaplan-Meier survival Curves \nGroup: ",gname), legend.labs = c("Single","Single","Partnered","Partnered"),surv.median.line = "hv", palette = c("purple", "green"))
   km <- km$plot + facet_wrap(~ sex)
   print(km)
   #cox proportional hazards regression
